@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aztec Origins Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Orbitron', sans-serif;
+    background: linear-gradient(135deg,#3b0ca8,#0ef3d5);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .logo-container { text-align: center; margin-bottom: 20px; }
+  .logo-container img { width: 120px; height:120px; border-radius:50%; animation: pulse 2s infinite ease-in-out; }
+  @keyframes pulse {0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  h1 { font-size: 2rem; margin-top: 10px; text-shadow: 1px 1px 4px #000; }
+  .card { background: rgba(255,255,255,0.85); color:#000; border-radius: 20px; padding:20px; width:100%; max-width:600px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .question { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; }
+  .answers { display: grid; gap:10px; }
+  .answer-btn { padding: 12px; border-radius: 12px; border:none; font-weight:600; cursor:pointer; transition: background 0.2s; display:flex; justify-content:space-between; }
+  .answer-btn:hover { background:#eee; }
+  .correct { background:#b2f5ea !important; border:2px solid #22c55e !important; }
+  .wrong { background:#fed7d7 !important; border:2px solid #ef4444 !important; }
+  .timer-bar { height:8px; border-radius:8px; background:#ccc; overflow:hidden; margin-bottom:10px; }
+  .timer-fill { height:100%; background:linear-gradient(90deg,#7c2bf6,#13e9c2); width:100%; transition: width 1s linear; }
+  .btn { padding:10px 20px; border:none; border-radius:12px; font-weight:700; cursor:pointer; transition: brightness 0.2s; }
+  .start-btn { background:#5b2ad6; color:#fff; margin-top:10px; }
+  .start-btn:hover { filter:brightness(1.1); }
+  input { padding:8px; border-radius:8px; border:1px solid #555; width:100%; margin-bottom:10px; }
+  footer { margin-top:auto; font-size:0.8rem; color:rgba(255,255,255,0.7); text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="logo-container">
+  <img src="https://pbs.twimg.com/profile_images/1924975143249448961/2vlPLmhG_400x400.jpg" alt="Aztec Logo">
+  <h1>Aztec Origins — Quiz Arena</h1>
+</div>
+
+<div class="card" id="quiz-card">
+  <p>Click start to test your Aztec Origins knowledge!</p>
+  <button class="btn start-btn" id="start-btn">Start Quiz</button>
+</div>
+
+<footer>Built for Aztec community hype • Vanilla JS edition</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+const QUESTIONS = [
+  {q:"What makes Aztec Origins unique in the NFT space?", choices:["Privacy Layer","Fast Transactions","Meme Utility","Real-world assets"], answer:0},
+  {q:"Aztec Network is mainly known for what core technology?", choices:["Zero Knowledge Proofs","Proof of Work","Sharding","Layer 1 Blockchain"], answer:0},
+  {q:"If you could own one Aztec character NFT power, which would you choose?", choices:["Shadow Cloak","Time Warp","Code Summoner","Infinity Mask"], answer:null},
+  {q:"What is the ultimate goal of Aztec Origins NFTs?", choices:["To build a private identity layer","To meme the metaverse","To host gaming tournaments","To become an art marketplace"], answer:0},
+  {q:"What do Aztec holders gain access to in the community?", choices:["Secret missions & drops","Staking","DAO votes","All of the above"], answer:3},
+  {q:"Which other ecosystem often collaborates or vibes with Aztec Origins?", choices:["@IDOSxyz","@HeyElsaAI","@ZamaCreator","All of the above"], answer:3},
+  {q:"If Season 3 of Aztec Origins launches, what would you expect?", choices:["NFT Evolution Mechanic","AI-powered lore quests","New character clans","All of the above"], answer:3},
+  {q:"What word describes the Aztec community best?", choices:["Builders","Dreamers","Shadow Agents","All"], answer:3},
+  {q:"Which of these traits best represent a 'True Aztec Origin' NFT?", choices:["Rare background","Mythic aura","ZK-marked emblem","All"], answer:3},
+  {q:"What's the motto of the Aztec community?", choices:["Privacy is Power","Mint. Rise. Repeat.","From Origins to Infinity","Unseen but Unstoppable"], answer:0},
+];
+
+let index=0, score=0, timeLeft=20, timer, selected=null;
+
+const card=document.getElementById('quiz-card');
+const startBtn=document.getElementById('start-btn');
+
+startBtn.onclick = startQuiz;
+
+function startQuiz(){
+  score=0; index=0;
+  loadQuestion();
+  playTone("start");
+}
+
+function loadQuestion(){
+  if(index>=QUESTIONS.length){ finishQuiz(); return;}
+  const q=QUESTIONS[index];
+  card.innerHTML=`
+    <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+    <p class="question">${q.q}</p>
+    <div class="answers">${q.choices.map((c,i)=>`<button class="answer-btn" data-index="${i}">${c} <span>${String.fromCharCode(65+i)}</span></button>`).join('')}</div>
+  `;
+  const buttons=document.querySelectorAll(".answer-btn");
+  buttons.forEach(b=>b.onclick=()=>checkAnswer(parseInt(b.dataset.index)));
+  timeLeft=20; updateTimer();
+  timer=setInterval(updateTimer,1000);
+}
+
+function updateTimer(){
+  const fill=document.getElementById('timer-fill');
+  fill.style.width=(timeLeft/20*100)+'%';
+  if(timeLeft<=0){ clearInterval(timer); checkAnswer(null); }
+  timeLeft--;
+}
+
+function checkAnswer(choice){
+  clearInterval(timer);
+  const q=QUESTIONS[index];
+  const buttons=document.querySelectorAll(".answer-btn");
+  buttons.forEach((b,i)=>{
+    if(q.answer!==null && i===q.answer) b.classList.add("correct");
+    if(choice===i && choice!==q.answer) b.classList.add("wrong");
+  });
+  if(q.answer===null ? choice!==null : choice===q.answer) score+=1;
+  choice!==null && playTone(choice===q.answer||q.answer===null?"correct":"wrong");
+  setTimeout(()=>{ index++; loadQuestion(); }, 900);
+}
+
+function finishQuiz(){
+  confetti();
+  card.innerHTML=`
+    <p class="question">Quiz Complete 🎉</p>
+    <p>Your score: ${score}</p>
+    <input id="name-input" placeholder="Enter name for leaderboard"/>
+    <button class="btn start-btn" id="save-btn">Save Score</button>
+    <button class="btn start-btn" onclick="startQuiz()">Play Again</button>
+    <div id="leaderboard"></div>
+  `;
+  document.getElementById('save-btn').onclick=saveScore;
+  renderLeaderboard();
+}
+
+function saveScore(){
+  const name=document.getElementById('name-input').value||'Anon';
+  let lb=JSON.parse(localStorage.getItem('aztec_lb')||'[]');
+  lb.push({name,score}); lb=lb.sort((a,b)=>b.score-a.score).slice(0,10);
+  localStorage.setItem('aztec_lb', JSON.stringify(lb));
+  renderLeaderboard();
+}
+
+function renderLeaderboard(){
+  const lb=document.getElementById('leaderboard');
+  let data=JSON.parse(localStorage.getItem('aztec_lb')||'[]');
+  lb.innerHTML='<h3>Leaderboard</h3><ol>'+data.map(d=>`<li>${d.name}: ${d.score}</li>`).join('')+'</ol>';
+}
+
+function playTone(type){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    if(type==="correct"){ o.frequency.setValueAtTime(880,ctx.currentTime); g.gain.setValueAtTime(0.2,ctx.currentTime); }
+    else if(type==="wrong"){ o.frequency.setValueAtTime(220,ctx.currentTime); g.gain.setValueAtTime(0.18,ctx.currentTime); }
+    else{o.frequency.setValueAtTime(600,ctx.currentTime); g.gain.setValueAtTime(0.15,ctx.currentTime);}
+    o.start(); o.stop(ctx.currentTime+0.3);
+  }catch(e){}
+}
+</script>
+</body>
+</html>
